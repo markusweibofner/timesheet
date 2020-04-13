@@ -1,0 +1,143 @@
+Sub importTXTFiles()
+
+Dim dateien
+Dim I As Integer
+Dim X As Integer
+Dim Datei As String
+Dim text As String
+Dim textline As String
+Dim imports As Integer
+Dim row As String
+
+
+imports = 0
+
+dateien = Files()
+X = UBound(dateien)
+
+For I = 1 To X
+    Datei = dateien(I)
+
+    Open Datei For Input As #1
+    Do Until EOF(1)
+         Line Input #1, textline
+        text = text & textline
+    Loop
+    imports = imports + parseFile(text)
+   ' row = getCurrentRow()
+   ' Cells(row, 2).Value = "'---"
+    Close #1
+Next I
+
+MsgBox ("Der Import ist abgeschlossen. " + Str(imports) + " Zeitstempel importiert.")
+
+End Sub
+
+Function parseFile(text As String)
+ Dim posID As Integer
+ Dim posDatum As Integer
+ Dim posStartzeit As Integer
+ Dim posEndzeit As Integer
+ Dim posDauer As Integer
+ Dim posEnde As Integer
+ Dim imported As Integer
+ 
+ imported = 0
+ 
+ Dim ID As String
+ Dim datum As String
+ Dim Startzeit As String
+ Dim Endzeit As String
+ Dim Dauer As String
+ Dim Ende As String
+ 
+ Dim row As Integer
+ Dim counter As Integer
+ posEnde = 0
+ 
+ While posEnde < Len(text)
+    posID = InStr(text, "ID") + posEnde
+    posDatum = InStr(text, "Datum") + posEnde
+    posStartzeit = InStr(text, "Startzeit") + posEnde
+    posEndzeit = InStr(text, "Endzeit") + posEnde
+    posDauer = InStr(text, "Dauer") + posEnde
+    posEnde = InStr(text, ".") + posEnde
+    
+    ID = Mid(text, posID + 4, 14)
+
+    
+    counter = 3
+    row = getCurrentRow()
+    While counter < row
+       If (Cells(counter, 2).Value = ID) Then
+              GoTo NextTimeStamp
+        Else
+            counter = counter + 1
+       End If
+    Wend
+    
+    'Skip one line, if new date
+    datum = Mid(text, posDatum + 7, 8)
+    If (Cells(row - 1, 3).Value <> datum) Then
+       Cells(row, 2).Value = "---"
+        row = row + 1
+   End If
+    
+    imported = imported + 1
+    Startzeit = Mid(text, posStartzeit + 11, 5)
+     Endzeit = Mid(text, posEndzeit + 9, 5)
+     Dauer = Mid(text, posDauer + 13, 3)
+     
+     Call writeData(ID, datum, Startzeit, Endzeit, Dauer, row)
+NextTimeStamp:
+
+ Wend
+ 
+ parseFile = imported
+End Function
+
+Function writeData(ID As String, datum As String, Startzeit As String, Endzeit As String, Dauer As String, currentRow As Integer)
+
+Cells(currentRow, 2).Value = ID
+Cells(currentRow, 3).Value = datum
+Cells(currentRow, 4).Value = Startzeit
+Cells(currentRow, 5).Value = Endzeit
+Cells(currentRow, 6).Value = Dauer
+
+End Function
+Function getCurrentRow()
+Dim I As Integer
+
+I = 3
+While Cells(I, 2).Value <> ""
+    I = I + 1
+Wend
+
+getCurrentRow = I
+
+End Function
+
+Function Files()
+Dim FPath         As String
+Dim FEndung       As String
+Dim FName         As String
+Dim DateiNamen()  As String
+
+FPath = "yourpath"             ' Pfad der Suche angeben und letzten Slash \ hinzufügen
+FEndung = "*.txt"               ' Dateiendung für Suche festlegen
+X = 1
+ReDim Preserve DateiNamen(X)                    ' Array dimensionieren
+FName = Dir(FPath & FEndung)
+DateiNamen(X) = FPath & FName                   ' erste Datei einlesen und im Array speichern
+FName = Dir
+
+Do While FName <> ""
+X = X + 1
+ReDim Preserve DateiNamen(X)                    ' Array dimensionieren
+DateiNamen(X) = FPath & FName                   ' Über Schleife einlesen
+FName = Dir
+Loop
+
+Files = DateiNamen()
+End Function
+
